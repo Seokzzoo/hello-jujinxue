@@ -176,8 +176,12 @@
       function decodeMessage() {
         try {
           const hash = window.location.hash.substring(1)
-          const params = new URLSearchParams(hash)
-          const encoded = params.get("c")
+
+          // "c=" 뒤의 전체 문자열을 그대로 가져옴
+          const prefix = "c="
+          if (!hash.startsWith(prefix)) return null
+          const encoded = hash.slice(prefix.length)
+
           if (!encoded) return null
 
           const binary = atob(encoded)
