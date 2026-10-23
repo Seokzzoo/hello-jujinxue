@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jujinxue 메시지 만들기 🐰</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet" />
+
+    <style>
+      :root {
+        --bg: #fdf5e6;
+        --card-bg: #ffffff;
+        --primary: #ffd86b;
+        --primary-hover: #ffce4b;
+        --accent: #ff859c;
+        --text-main: #483329;
+        --border-color: #f6ded0;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Jua", sans-serif;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text-main);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 400px;
+        background: var(--card-bg);
+        border-radius: 28px;
+        padding: 32px 24px;
+        border: 3.5px solid var(--border-color);
+        box-shadow: 0 12px 28px rgba(230, 180, 150, 0.25);
+        text-align: center;
+      }
+
+      .jujinxue-box {
+        margin-bottom: 12px;
+        display: inline-block;
+        animation: gentle-bounce 2s infinite ease-in-out;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-7px);
+        }
+      }
+
+      .jujinxue-svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.06));
+      }
+
+      h1 {
+        font-size: 1.85rem;
+        margin-bottom: 6px;
+      }
+
+      .sub-desc {
+        font-size: 1.05rem;
+        color: #9c847d;
+        margin-bottom: 20px;
+      }
+
+      textarea {
+        width: 100%;
+        height: 120px;
+        border: 2px solid #ecd9ce;
+        border-radius: 18px;
+        padding: 14px;
+        font-size: 1.2rem;
+        resize: none;
+        outline: none;
+        background-color: #fffdfb;
+        color: var(--text-main);
+        transition: border-color 0.2s;
+      }
+
+      textarea:focus {
+        border-color: var(--accent);
+      }
+
+      .btn {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.25rem;
+        border: none;
+        border-radius: 18px;
+        cursor: pointer;
+        margin-top: 14px;
+        transition:
+          transform 0.15s,
+          background-color 0.2s;
+      }
+
+      .btn:active {
+        transform: scale(0.97);
+      }
+
+      .btn-create {
+        background-color: var(--primary);
+        color: var(--text-main);
+        box-shadow: 0 4px 10px rgba(255, 216, 107, 0.45);
+      }
+
+      .btn-create:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .btn-preview {
+        display: none;
+        background-color: #f3ede8;
+        color: #725c53;
+        margin-top: 10px;
+      }
+
+      .toast {
+        visibility: hidden;
+        min-width: 230px;
+        background-color: #483329;
+        color: #ffffff;
+        text-align: center;
+        border-radius: 30px;
+        padding: 12px 18px;
+        position: fixed;
+        bottom: 30px;
+        font-size: 1.05rem;
+        opacity: 0;
+        transition:
+          opacity 0.3s,
+          bottom 0.3s;
+      }
+
+      .toast.show {
+        visibility: visible;
+        opacity: 1;
+        bottom: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="jujinxue-box">
+        <img src="jujinxue.png" style="width: 300px; height: auto" alt="jujinxue" />
+      </div>
+
+      <h1>jujinxue 메시지 만들기</h1>
+      <p class="sub-desc">전달하고 싶은 소중한 한마디를 적어보세요 🥕</p>
+
+      <textarea id="message-input" placeholder="여기에 메시지를 입력하세요...&#10;(예: 오늘 하루도 힘내! ㅋㅋ)"></textarea>
+
+      <button class="btn btn-create" id="btn-create">링크 복사하고 만들기 ✨</button>
+      <button class="btn btn-preview" id="btn-preview">결과 페이지 바로 가기 👉</button>
+    </div>
+
+    <div id="toast" class="toast">링크가 복사되었습니다! 🎉</div>
+
+    <script>
+      // UTF-8 안전 Base64 인코딩
+      function encodePayload(data) {
+        const bytes = new TextEncoder().encode(JSON.stringify(data))
+        let binary = ""
+        bytes.forEach((b) => (binary += String.fromCharCode(b)))
+        return btoa(binary)
+      }
+
+      function showToast(text) {
+        const toast = document.getElementById("toast")
+        toast.textContent = text
+        toast.classList.add("show")
+        setTimeout(() => toast.classList.remove("show"), 2500)
+      }
+
+      const input = document.getElementById("message-input")
+      const btnCreate = document.getElementById("btn-create")
+      const btnPreview = document.getElementById("btn-preview")
+      let generatedUrl = ""
+
+      btnCreate.addEventListener("click", async () => {
+        const text = input.value.trim()
+        if (!text) {
+          alert("메시지를 입력해주세요!")
+          return
+        }
+
+        // jujinxue 원본 규격: { v: 1, m: "메시지" }
+        const payload = encodePayload({ v: 1, m: text })
+
+        // result.html 경로 생성 (로컬/서버 배포 환경 공통 지원)
+        const currentUrl = new URL(window.location.href)
+        const basePath = currentUrl.pathname.substring(0, currentUrl.pathname.lastIndexOf("/") + 1)
+        generatedUrl = `${currentUrl.origin}${basePath}result.html?v=1#c=${payload}`
+
+        try {
+          await navigator.clipboard.writeText(generatedUrl)
+          showToast("링크가 복사되었습니다! 친구에게 보내보세요 💌")
+        } catch (err) {
+          prompt("아래 공유 링크를 복사하세요:", generatedUrl)
+        }
+
+        btnPreview.style.display = "block"
+      })
+
+      btnPreview.addEventListener("click", () => {
+        if (generatedUrl) {
+          window.location.href = generatedUrl
+        }
+      })
+    </script>
+  </body>
+</html>
